@@ -10,7 +10,7 @@ The project combines **Core Banking Integration**, **Zero-Trust Security Princip
 
 ---
 
-# 📌 Project Objectives
+# Project Objectives
 
 The primary goal of Finnera is to design and implement a secure, scalable, and auditable banking platform capable of:
 
@@ -24,16 +24,16 @@ The primary goal of Finnera is to design and implement a secure, scalable, and a
 
 ---
 
-# 🏦 Key Features
+# Key Features
 
-## 🔐 Identity & Access Management
+## Identity & Access Management
 - OAuth2 / OpenID Connect authentication using Keycloak.
 - Multi-Factor Authentication (MFA).
 - Role-Based Access Control (RBAC).
 - Token validation and centralized authorization policies.
 - Secure session and credential lifecycle management.
 
-## 💳 Core Banking Integration
+## Core Banking Integration
 - Secure integration with Apache Fineract.
 - API-driven banking operations:
   - Customer onboarding
@@ -43,28 +43,28 @@ The primary goal of Finnera is to design and implement a secure, scalable, and a
   - Loan operations
 - Standardized banking request orchestration.
 
-## 🛡️ Fraud Detection & Risk Scoring
+## Fraud Detection & Risk Scoring
 - Real-time fraud risk analysis.
 - Threshold-based anomaly detection.
 - Machine learning fraud scoring service.
 - Transaction flagging and alert management.
 - Investigation workflow support for compliance teams.
 
-## 📑 KYC / AML Compliance
+## KYC / AML Compliance
 - Customer onboarding workflows.
 - KYC verification pipelines.
 - AML screening orchestration.
 - Encrypted Personally Identifiable Information (PII).
 - Decentralized Identifier (DID) issuance support.
 
-## ⛓️ Immutable Audit & Blockchain Integrity
+## Immutable Audit & Blockchain Integrity
 - Tamper-resistant audit logs.
 - Blockchain anchoring through Hyperledger Fabric.
 - CouchDB world-state persistence.
 - Transaction integrity verification.
 - Compliance-ready exportable audit reports.
 
-## 📊 Operational Dashboards
+## Operational Dashboards
 Role-aware dashboards for:
 - Super Admin
 - Compliance Officer
@@ -80,7 +80,7 @@ Includes:
 
 ---
 
-# 🏗️ System Architecture
+# System Architecture
 
 Finnera follows a distributed microservices architecture with independently deployable services.
 
@@ -103,7 +103,7 @@ Finnera follows a distributed microservices architecture with independently depl
 
 ![SystemArchitecture](Methodology.png)
 
-# 🔒 Security Architecture
+# Security Architecture
 
 Finnera adopts a layered security architecture aligned with fintech and banking security practices.
 
@@ -121,7 +121,7 @@ Finnera adopts a layered security architecture aligned with fintech and banking 
 
 ---
 
-# 🚀 Getting Started
+# Getting Started
 
 ### Prerequisites
 
@@ -380,7 +380,7 @@ docker compose down -v
 
 ---
 
-# 📡 API Capabilities
+# API Capabilities
 
 ## Banking Operations
 - Customer onboarding
@@ -403,7 +403,7 @@ docker compose down -v
 
 ---
 
-# 📂 Repository Structure
+# Repository Structure
 
 ```text
 finnera/
@@ -424,7 +424,7 @@ finnera/
 
 ---
 
-# 🧪 Testing Strategy
+# Testing Strategy
 
 The project includes:
 - Unit Testing
@@ -436,7 +436,7 @@ The project includes:
 
 ---
 
-# 📈 Future Enhancements
+# Future Enhancements
 
 Potential future improvements include:
 - AI-powered behavioral fraud analytics
@@ -450,7 +450,7 @@ Potential future improvements include:
 
 ---
 
-# 🎓 Academic Significance
+# Academic Significance
 
 This Final Year Project demonstrates practical implementation of:
 - Secure distributed systems
@@ -465,7 +465,7 @@ The project bridges academic concepts with real-world enterprise fintech archite
 
 ---
 
-# 🤝 Contributors
+# Contributors
 
 - [Rooshan Riaz](https://github.com/rooshanriaz)
 - [Muhammad Shameer Awais](https://github.com/ShameerAwais)
@@ -473,13 +473,13 @@ The project bridges academic concepts with real-world enterprise fintech archite
 
 ---
 
-# 📄 License
+# License
 
 This project is developed for academic and educational purposes as a Final Year Project (FYP).
 
 ---
 
-# ⭐ Acknowledgements
+# Acknowledgements
 
 Special thanks to:
 - Apache Software Foundation
