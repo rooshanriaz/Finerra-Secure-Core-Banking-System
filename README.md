@@ -103,44 +103,6 @@ Finnera follows a distributed microservices architecture with independently depl
 
 ![SystemArchitecture](Methodology.png)
 
-# ⚙️ Technology Stack
-
-## Backend
-- Java 17
-- Spring Boot
-- Spring Security
-- Maven
-
-## Frontend
-- React
-- Vite
-- TailwindCSS
-
-## Databases & Storage
-- MySQL
-- Redis
-- CouchDB
-
-## Identity & Security
-- Keycloak
-- OAuth2
-- OpenID Connect (OIDC)
-- JWT Authentication
-
-## Blockchain & Audit
-- Hyperledger Fabric
-- Fabric Chaincode
-
-## Infrastructure
-- Docker
-- Docker Compose
-
-## Machine Learning
-- Python-based fraud prediction service
-- ML inference APIs
-
----
-
 # 🔒 Security Architecture
 
 Finnera adopts a layered security architecture aligned with fintech and banking security practices.
