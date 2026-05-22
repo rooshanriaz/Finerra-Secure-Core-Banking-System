@@ -101,6 +101,8 @@ Finnera follows a distributed microservices architecture with independently depl
 
 ---
 
+![SystemArchitecture](Methodology.png)
+
 # ⚙️ Technology Stack
 
 ## Backend
