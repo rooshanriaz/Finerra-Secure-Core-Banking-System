@@ -258,9 +258,9 @@ The project bridges academic concepts with real-world enterprise fintech archite
 
 # 🤝 Contributors
 
-[Rooshan Riaz](https://github.com/rooshanriaz)
-[Muhammad Shameer Awais](https://github.com/ShameerAwais)
-[Muhammad Yasir Khan](https://github.com/yasirkhan26)
+- [Rooshan Riaz](https://github.com/rooshanriaz)
+- [Muhammad Shameer Awais](https://github.com/ShameerAwais)
+- [Muhammad Yasir Khan](https://github.com/yasirkhan26)
 
 ---
 
