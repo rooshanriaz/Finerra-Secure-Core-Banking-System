@@ -1,0 +1,106 @@
+﻿{
+    "generatedAt":  "2026-04-21T02:37:21.3085372+05:00",
+    "customerCount":  10,
+    "recommendations":  [
+                            {
+                                "syntheticUserRef":  "SYN-0001",
+                                "fineractClientId":  "52",
+                                "loanId":  23,
+                                "riskScore":  72,
+                                "repaymentSuccessRate":  100,
+                                "savingsSuccessRate":  90,
+                                "recommendation":  "MANUAL_REVIEW",
+                                "rationale":  "Computed from repayment behavior, savings transaction reliability, and risk profile."
+                            },
+                            {
+                                "syntheticUserRef":  "SYN-0002",
+                                "fineractClientId":  "53",
+                                "loanId":  24,
+                                "riskScore":  92.16,
+                                "repaymentSuccessRate":  78.95,
+                                "savingsSuccessRate":  78.79,
+                                "recommendation":  "APPROVE_DISBURSAL",
+                                "rationale":  "Computed from repayment behavior, savings transaction reliability, and risk profile."
+                            },
+                            {
+                                "syntheticUserRef":  "SYN-0003",
+                                "fineractClientId":  "54",
+                                "loanId":  25,
+                                "riskScore":  63.62,
+                                "repaymentSuccessRate":  100,
+                                "savingsSuccessRate":  62.07,
+                                "recommendation":  "MANUAL_REVIEW",
+                                "rationale":  "Computed from repayment behavior, savings transaction reliability, and risk profile."
+                            },
+                            {
+                                "syntheticUserRef":  "SYN-0004",
+                                "fineractClientId":  "55",
+                                "loanId":  26,
+                                "riskScore":  98.12,
+                                "repaymentSuccessRate":  100,
+                                "savingsSuccessRate":  93.75,
+                                "recommendation":  "APPROVE_DISBURSAL",
+                                "rationale":  "Computed from repayment behavior, savings transaction reliability, and risk profile."
+                            },
+                            {
+                                "syntheticUserRef":  "SYN-0005",
+                                "fineractClientId":  "56",
+                                "loanId":  27,
+                                "riskScore":  62.6,
+                                "repaymentSuccessRate":  80,
+                                "savingsSuccessRate":  72,
+                                "recommendation":  "MANUAL_REVIEW",
+                                "rationale":  "Computed from repayment behavior, savings transaction reliability, and risk profile."
+                            },
+                            {
+                                "syntheticUserRef":  "SYN-0006",
+                                "fineractClientId":  "57",
+                                "loanId":  28,
+                                "riskScore":  81,
+                                "repaymentSuccessRate":  86.67,
+                                "savingsSuccessRate":  73.33,
+                                "recommendation":  "APPROVE_DISBURSAL",
+                                "rationale":  "Computed from repayment behavior, savings transaction reliability, and risk profile."
+                            },
+                            {
+                                "syntheticUserRef":  "SYN-0007",
+                                "fineractClientId":  "58",
+                                "loanId":  29,
+                                "riskScore":  100,
+                                "repaymentSuccessRate":  100,
+                                "savingsSuccessRate":  77.78,
+                                "recommendation":  "APPROVE_DISBURSAL",
+                                "rationale":  "Computed from repayment behavior, savings transaction reliability, and risk profile."
+                            },
+                            {
+                                "syntheticUserRef":  "SYN-0008",
+                                "fineractClientId":  "59",
+                                "loanId":  30,
+                                "riskScore":  70.31,
+                                "repaymentSuccessRate":  100,
+                                "savingsSuccessRate":  84.38,
+                                "recommendation":  "MANUAL_REVIEW",
+                                "rationale":  "Computed from repayment behavior, savings transaction reliability, and risk profile."
+                            },
+                            {
+                                "syntheticUserRef":  "SYN-0009",
+                                "fineractClientId":  "60",
+                                "loanId":  31,
+                                "riskScore":  65.79,
+                                "repaymentSuccessRate":  85.71,
+                                "savingsSuccessRate":  74.07,
+                                "recommendation":  "MANUAL_REVIEW",
+                                "rationale":  "Computed from repayment behavior, savings transaction reliability, and risk profile."
+                            },
+                            {
+                                "syntheticUserRef":  "SYN-0010",
+                                "fineractClientId":  "61",
+                                "loanId":  32,
+                                "riskScore":  86.54,
+                                "repaymentSuccessRate":  93.33,
+                                "savingsSuccessRate":  81.82,
+                                "recommendation":  "APPROVE_DISBURSAL",
+                                "rationale":  "Computed from repayment behavior, savings transaction reliability, and risk profile."
+                            }
+                        ]
+}

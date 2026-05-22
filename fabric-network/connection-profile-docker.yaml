@@ -1,0 +1,58 @@
+name: FYP Banking Network Docker
+version: 1.0.0
+client:
+  organization: Bank
+  connection:
+    timeout:
+      peer:
+        endorser: '300'
+      orderer: '300'
+
+organizations:
+  Bank:
+    mspid: BankMSP
+    peers:
+      - peer0.bank.example.com
+    certificateAuthorities:
+      - ca.bank.example.com
+
+peers:
+  peer0.bank.example.com:
+    url: grpcs://peer0.bank.example.com:7051
+    tlsCACerts:
+      path: /app/fabric-network/organizations/peerOrganizations/bank.example.com/peers/peer0.bank.example.com/tls/ca.crt
+    grpcOptions:
+      ssl-target-name-override: peer0.bank.example.com
+      hostnameOverride: peer0.bank.example.com
+
+orderers:
+  orderer.example.com:
+    url: grpcs://orderer.example.com:7050
+    tlsCACerts:
+      path: /app/fabric-network/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/tls/ca.crt
+    grpcOptions:
+      ssl-target-name-override: orderer.example.com
+      hostnameOverride: orderer.example.com
+
+certificateAuthorities:
+  ca.bank.example.com:
+    url: https://ca.bank.example.com:7054
+    caName: ca-bank
+    tlsCACerts:
+      path: /app/fabric-network/organizations/fabric-ca/bank/ca-cert.pem
+    httpOptions:
+      verify: false
+    registrar:
+      enrollId: admin
+      enrollSecret: adminpw
+
+channels:
+  banking-channel:
+    orderers:
+      - orderer.example.com
+    peers:
+      peer0.bank.example.com:
+        endorsingPeer: true
+        chaincodeQuery: true
+        ledgerQuery: true
+        eventSource: true

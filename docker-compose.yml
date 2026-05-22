@@ -1,0 +1,620 @@
+# Full stack: docker compose up -d --build
+# First boot can take several minutes (Keycloak realm import, Fineract Liquibase, ML model train in image build).
+# Hyperledger: fabric-network is an internal bridge; KYC/Audit fall back to mock DIDs if no peer is reachable.
+#
+# Shared JWT for Java services. If .env contains JWT_SECRET= with no value, remove that line — empty overrides the default.
+x-java-jwt: &java_jwt
+  JWT_SECRET: ${JWT_SECRET:-ThisIsAVerySecretKeyThatShouldBeChangedInProductionEnvironment123!}
+
+networks:
+  fyp-network:
+    name: fyp-network
+    driver: bridge
+  # Internal bridge for KYC/Audit (Hyperledger optional). No manual `docker network create`.
+  fabric-network:
+    name: fyp-fabric-network
+    driver: bridge
+  # Existing Hyperledger network created by fabric-network/docker-compose.yml
+  fabric-network-external:
+    external: true
+    name: fabric-network
+
+volumes:
+  mysql_data:
+  redis_data:
+  fineract_mariadb_data:
+
+services:
+  # ===========================================================================
+  # Infrastructure
+  # ===========================================================================
+
+  mysql:
+    image: mysql:8.0
+    container_name: fyp-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
+      MYSQL_USER: ${MYSQL_USER:-fyp_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-fyp_password}
+      MYSQL_DATABASE: auth_db
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    command: --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-rootpassword}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - fyp-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: fyp-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - fyp-network
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:25.0
+    container_name: fyp-keycloak
+    command: start-dev --import-realm
+    ports:
+      - "8090:8080"
+    environment:
+      # Ensure browser-facing discovery/issuer URLs use the host-mapped port (8090), not the container's 8080.
+      KC_HOSTNAME: localhost
+      KC_HOSTNAME_PORT: 8090
+      KC_HTTP_ENABLED: "true"
+      # Required when Keycloak sits behind nginx (e.g. frontend /realms proxy); honors X-Forwarded-* headers.
+      KC_PROXY_HEADERS: xforwarded
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+    volumes:
+      - ./docker/keycloak/realm-finnera.json:/opt/keycloak/data/import/realm-finnera.json:ro
+    networks:
+      - fyp-network
+
+  # ===========================================================================
+  # Apache Fineract (core banking) — optional but required for Loan Review / CBC
+  # First startup can take 2–3 minutes while Liquibase runs. Default CBC URL points here.
+  # External Fineract (separate compose on the host): in project-root .env set for fyp-cbc, e.g.
+  #   FINERACT_BASE_URL=https://host.docker.internal:8443/fineract-provider/api
+  # (or http://host.docker.internal:8080/fineract-provider/api if your dev stack uses HTTP).
+  # Then: docker compose up -d core-banking-connector api-gateway
+  # CBC does not hard-depend on the bundled `fineract` service so host-based Fineract works.
+  # ===========================================================================
+
+  fineract-db:
+    image: mariadb:11.5
+    container_name: fyp-fineract-mariadb
+    environment:
+      MYSQL_ROOT_PASSWORD: ${FINERACT_DB_ROOT_PASSWORD:-fineract_root_dev}
+    volumes:
+      - fineract_mariadb_data:/var/lib/mysql
+      - ./docker/fineract/init:/docker-entrypoint-initdb.d:ro
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--su-mysql", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+      start_period: 40s
+    networks:
+      - fyp-network
+    restart: unless-stopped
+
+  fineract:
+    image: apache/fineract:latest
+    container_name: fyp-fineract
+    environment:
+      FINERACT_HIKARI_DRIVER_SOURCE_CLASS_NAME: org.mariadb.jdbc.Driver
+      FINERACT_HIKARI_JDBC_URL: jdbc:mariadb://fineract-db:3306/fineract_tenants
+      FINERACT_HIKARI_USERNAME: root
+      FINERACT_HIKARI_PASSWORD: ${FINERACT_DB_ROOT_PASSWORD:-fineract_root_dev}
+      FINERACT_DEFAULT_TENANTDB_HOSTNAME: fineract-db
+      FINERACT_DEFAULT_TENANTDB_PORT: "3306"
+      FINERACT_DEFAULT_TENANTDB_UID: root
+      FINERACT_DEFAULT_TENANTDB_PWD: ${FINERACT_DB_ROOT_PASSWORD:-fineract_root_dev}
+      FINERACT_DEFAULT_MASTER_PASSWORD: fineract
+      FINERACT_SERVER_SSL_ENABLED: "true"
+      FINERACT_INSECURE_HTTP_CLIENT: "true"
+    depends_on:
+      fineract-db:
+        condition: service_healthy
+    networks:
+      - fyp-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2048M
+        reservations:
+          memory: 512M
+
+  # ===========================================================================
+  # Python ML Service
+  # ===========================================================================
+
+  ml-fraud-model:
+    build: ./ml-fraud-model
+    container_name: fyp-ml-fraud-model
+    ports:
+      - "5001:5000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - fyp-network
+
+  # ===========================================================================
+  # Java Microservices
+  # (build context = repo root so docker/maven/settings.xml is available in Dockerfiles)
+  # ===========================================================================
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: auth-service/Dockerfile
+    container_name: fyp-auth-service
+    ports:
+      - "8082:8082"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8082/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 120s
+    environment:
+      <<: *java_jwt
+      SPRING_PROFILES_ACTIVE: prod
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: auth_db
+      MYSQL_USERNAME: ${MYSQL_USER:-fyp_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-fyp_password}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      OIDC_ISSUER_URL: ${OIDC_ISSUER_URL:-http://localhost:8082}
+      SERVER_SSL_ENABLED: ${SERVER_SSL_ENABLED:-false}
+      SERVER_SSL_KEYSTORE_PATH: ${SERVER_SSL_KEYSTORE_PATH:-}
+      SERVER_SSL_KEYSTORE_PASSWORD: ${SERVER_SSL_KEYSTORE_PASSWORD:-}
+      SERVER_SSL_KEYSTORE_TYPE: ${SERVER_SSL_KEYSTORE_TYPE:-PKCS12}
+      SERVER_SSL_TRUSTSTORE_PATH: ${SERVER_SSL_TRUSTSTORE_PATH:-}
+      SERVER_SSL_TRUSTSTORE_PASSWORD: ${SERVER_SSL_TRUSTSTORE_PASSWORD:-}
+      SERVER_SSL_CLIENT_AUTH: ${SERVER_SSL_CLIENT_AUTH:-none}
+      OAUTH2_JWK_SET_URI: ${OAUTH2_JWK_SET_URI:-http://keycloak:8080/realms/finnera/protocol/openid-connect/certs}
+      OAUTH2_JWT_ISSUER: ${OAUTH2_JWT_ISSUER:-http://localhost:8090/realms/finnera}
+      # Keycloak Admin API — used to provision users so they can log in via OIDC.
+      KEYCLOAK_ADMIN_URL: ${KEYCLOAK_ADMIN_URL:-http://keycloak:8080}
+      KEYCLOAK_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM:-finnera}
+      # Fineract role sync (scheduled) must reach CBC on the Docker network, not localhost.
+      CBC_URL: ${CBC_URL:-http://core-banking-connector:8081}
+    volumes:
+      - ./certs:/app/certs:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+    networks:
+      - fyp-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1.00"
+          memory: 1024M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+
+  core-banking-connector:
+    build:
+      context: .
+      dockerfile: core-banking-connector/Dockerfile
+    container_name: fyp-cbc
+    ports:
+      - "8081:8081"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8081/api/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 180s
+    environment:
+      <<: *java_jwt
+      SPRING_PROFILES_ACTIVE: prod
+      DATABASE_URL: jdbc:mysql://mysql:3306/cbc_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DATABASE_USERNAME: ${MYSQL_USER:-fyp_user}
+      DATABASE_PASSWORD: ${MYSQL_PASSWORD:-fyp_password}
+      FINERACT_BASE_URL: ${FINERACT_BASE_URL:-https://fineract:8443/fineract-provider/api}
+      FINERACT_USERNAME: ${FINERACT_USERNAME:-mifos}
+      FINERACT_PASSWORD: ${FINERACT_PASSWORD:-password}
+      FINERACT_TENANT_ID: ${FINERACT_TENANT_ID:-default}
+      SERVER_SSL_ENABLED: ${SERVER_SSL_ENABLED:-false}
+      SERVER_SSL_KEYSTORE_PATH: ${SERVER_SSL_KEYSTORE_PATH:-}
+      SERVER_SSL_KEYSTORE_PASSWORD: ${SERVER_SSL_KEYSTORE_PASSWORD:-}
+      SERVER_SSL_KEYSTORE_TYPE: ${SERVER_SSL_KEYSTORE_TYPE:-PKCS12}
+      SERVER_SSL_TRUSTSTORE_PATH: ${SERVER_SSL_TRUSTSTORE_PATH:-}
+      SERVER_SSL_TRUSTSTORE_PASSWORD: ${SERVER_SSL_TRUSTSTORE_PASSWORD:-}
+      SERVER_SSL_CLIENT_AUTH: ${SERVER_SSL_CLIENT_AUTH:-none}
+      FINERACT_MTLS_ENABLED: ${FINERACT_MTLS_ENABLED:-false}
+      FINERACT_CLIENT_KEYSTORE_PATH: ${FINERACT_CLIENT_KEYSTORE_PATH:-}
+      FINERACT_CLIENT_KEYSTORE_PASSWORD: ${FINERACT_CLIENT_KEYSTORE_PASSWORD:-}
+      FINERACT_TRUST_STORE_PATH: ${FINERACT_TRUST_STORE_PATH:-}
+      FINERACT_TRUST_STORE_PASSWORD: ${FINERACT_TRUST_STORE_PASSWORD:-}
+      FINERACT_SKIP_SSL_VERIFICATION: ${FINERACT_SKIP_SSL_VERIFICATION:-true}
+      OAUTH2_JWK_SET_URI: ${OAUTH2_JWK_SET_URI:-http://keycloak:8080/realms/finnera/protocol/openid-connect/certs}
+      OAUTH2_JWT_ISSUER: ${OAUTH2_JWT_ISSUER:-http://localhost:8090/realms/finnera}
+    volumes:
+      - ./certs:/app/certs:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+    networks:
+      - fyp-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1.00"
+          memory: 1024M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+
+  nadra-mock-service:
+    build:
+      context: .
+      dockerfile: nadra-mock-service/Dockerfile
+    container_name: fyp-nadra-mock
+    ports:
+      - "8084:8084"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8084/api/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 6
+      start_period: 60s
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+    networks:
+      - fyp-network
+
+  kyc-aml-service:
+    build:
+      context: .
+      dockerfile: kyc-aml-service/Dockerfile
+    container_name: fyp-kyc-aml
+    ports:
+      - "8083:8083"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8083/api/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 90s
+    environment:
+      <<: *java_jwt
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:mysql://mysql:3306/kyc_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DB_USERNAME: ${MYSQL_USER:-fyp_user}
+      DB_PASSWORD: ${MYSQL_PASSWORD:-fyp_password}
+      # Must match kyc-aml-service application.yml: services.nadra-mock.url (${NADRA_MOCK_URL})
+      NADRA_MOCK_URL: http://nadra-mock-service:8084/api
+      # CBC must use Docker service name (not localhost) for Fineract client creation after KYC.
+      CBC_URL: ${CBC_URL:-http://core-banking-connector:8081/api}
+      CBC_USERNAME: ${CBC_USERNAME:-system}
+      CBC_PASSWORD: ${CBC_PASSWORD:-system123}
+      AUDIT_SERVICE_URL: ${AUDIT_SERVICE_URL:-http://audit-service:8086/api}
+      # When fabric-network is attached, DIDs anchor on-chain; otherwise services fall back to mock.
+      FABRIC_ENABLED: ${FABRIC_ENABLED:-true}
+      FABRIC_NETWORK_CONFIG: ${FABRIC_NETWORK_CONFIG:-/app/fabric-network/config/connection-bank-docker.yaml}
+      FABRIC_WALLET_PATH: ${FABRIC_WALLET_PATH:-/app/fabric-wallet}
+      FABRIC_USER: ${FABRIC_USER:-admin}
+      # Use host-mapped Keycloak URL so issued token `iss` matches services expecting localhost:8090.
+      KYC_OAUTH2_TOKEN_URL: ${KYC_OAUTH2_TOKEN_URL:-http://host.docker.internal:8090/realms/finnera/protocol/openid-connect/token}
+      OAUTH2_TOKEN_URL: ${OAUTH2_TOKEN_URL:-http://keycloak:8080/realms/finnera/protocol/openid-connect/token}
+      OAUTH2_CLIENT_ID: ${OAUTH2_CLIENT_ID:-transaction-service}
+      OAUTH2_CLIENT_SECRET: ${OAUTH2_CLIENT_SECRET:-transaction-service-secret-change-me}
+      OAUTH2_JWK_SET_URI: ${OAUTH2_JWK_SET_URI:-http://keycloak:8080/realms/finnera/protocol/openid-connect/certs}
+      OAUTH2_JWT_ISSUER: ${OAUTH2_JWT_ISSUER:-http://localhost:8090/realms/finnera}
+    volumes:
+      - ./fabric-network:/app/fabric-network:ro
+      - ./fabric-network/wallet:/app/fabric-wallet:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+      nadra-mock-service:
+        condition: service_healthy
+      audit-service:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+    networks:
+      - fyp-network
+      - fabric-network
+      - fabric-network-external
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1.00"
+          memory: 1024M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+
+  transaction-service:
+    build:
+      context: .
+      dockerfile: transaction-service/Dockerfile
+    container_name: fyp-transaction
+    ports:
+      - "8085:8085"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8085/api/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 90s
+    environment:
+      <<: *java_jwt
+      SPRING_PROFILES_ACTIVE: prod
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USER: ${MYSQL_USER:-fyp_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-fyp_password}
+      CBC_URL: http://core-banking-connector:8081/api
+      CBC_USERNAME: system
+      CBC_PASSWORD: system123
+      AUDIT_SERVICE_URL: http://audit-service:8086/api
+      FRAUD_SERVICE_URL: http://fraud-detection-service:8087/api
+      OAUTH2_TOKEN_URL: ${OAUTH2_TOKEN_URL:-http://keycloak:8080/realms/finnera/protocol/openid-connect/token}
+      OAUTH2_CLIENT_ID: ${OAUTH2_CLIENT_ID:-transaction-service}
+      OAUTH2_CLIENT_SECRET: ${OAUTH2_CLIENT_SECRET:-transaction-service-secret-change-me}
+      OAUTH2_JWK_SET_URI: ${OAUTH2_JWK_SET_URI:-http://keycloak:8080/realms/finnera/protocol/openid-connect/certs}
+      OAUTH2_JWT_ISSUER: ${OAUTH2_JWT_ISSUER:-http://localhost:8090/realms/finnera}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      core-banking-connector:
+        condition: service_healthy
+      fraud-detection-service:
+        condition: service_healthy
+      audit-service:
+        condition: service_healthy
+    networks:
+      - fyp-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1.00"
+          memory: 1024M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+
+  audit-service:
+    build:
+      context: .
+      dockerfile: audit-service/Dockerfile
+    container_name: fyp-audit
+    ports:
+      - "8086:8086"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8086/api/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 90s
+    environment:
+      <<: *java_jwt
+      SPRING_PROFILES_ACTIVE: prod
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USER: ${MYSQL_USER:-fyp_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-fyp_password}
+      FABRIC_ENABLED: ${FABRIC_ENABLED:-true}
+      FABRIC_CONFIG: ${FABRIC_CONFIG:-/app/fabric-network/connection-profile-docker.yaml}
+      FABRIC_WALLET: ${FABRIC_WALLET:-/app/fabric-wallet}
+      FABRIC_IDENTITY: ${FABRIC_IDENTITY:-admin}
+      OAUTH2_JWK_SET_URI: ${OAUTH2_JWK_SET_URI:-http://keycloak:8080/realms/finnera/protocol/openid-connect/certs}
+      OAUTH2_JWT_ISSUER: ${OAUTH2_JWT_ISSUER:-http://localhost:8090/realms/finnera}
+    volumes:
+      - ./fabric-network:/app/fabric-network:ro
+      - ./fabric-network/wallet:/app/fabric-wallet:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+    networks:
+      - fyp-network
+      - fabric-network
+      - fabric-network-external
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1.00"
+          memory: 1024M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+
+  fraud-detection-service:
+    build:
+      context: .
+      dockerfile: fraud-detection-service/Dockerfile
+    container_name: fyp-fraud
+    ports:
+      - "8087:8087"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8087/api/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 90s
+    environment:
+      <<: *java_jwt
+      SPRING_PROFILES_ACTIVE: prod
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USER: ${MYSQL_USER:-fyp_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-fyp_password}
+      ML_SERVICE_URL: http://ml-fraud-model:5000
+      FRAUD_SERVICE_ADMIN_PASSWORD: ${FRAUD_SERVICE_ADMIN_PASSWORD:-admin123}
+      FRAUD_SERVICE_SYSTEM_PASSWORD: ${FRAUD_SERVICE_SYSTEM_PASSWORD:-system123}
+      OAUTH2_JWK_SET_URI: ${OAUTH2_JWK_SET_URI:-http://keycloak:8080/realms/finnera/protocol/openid-connect/certs}
+      OAUTH2_JWT_ISSUER: ${OAUTH2_JWT_ISSUER:-http://localhost:8090/realms/finnera}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      ml-fraud-model:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+    networks:
+      - fyp-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1.00"
+          memory: 1024M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+
+  # ===========================================================================
+  # API Gateway
+  # ===========================================================================
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: api-gateway/Dockerfile
+    container_name: fyp-api-gateway
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 90s
+    environment:
+      <<: *java_jwt
+      SPRING_PROFILES_ACTIVE: prod
+      OAUTH2_ISSUER_URI: ${OAUTH2_ISSUER_URI:-http://localhost:8090/realms/finnera}
+      OAUTH2_JWK_SET_URI: ${OAUTH2_JWK_SET_URI:-http://keycloak:8080/realms/finnera/protocol/openid-connect/certs}
+      OAUTH2_AUDIENCE: ${OAUTH2_AUDIENCE:-api-gateway}
+      CBC_URL: http://core-banking-connector:8081
+      AUTH_SERVICE_URL: http://auth-service:8082
+      KYC_AML_SERVICE_URL: http://kyc-aml-service:8083
+      TRANSACTION_SERVICE_URL: http://transaction-service:8085
+      AUDIT_SERVICE_URL: http://audit-service:8086
+      FRAUD_SERVICE_URL: http://fraud-detection-service:8087
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      SERVER_SSL_ENABLED: ${SERVER_SSL_ENABLED:-false}
+      SERVER_SSL_KEYSTORE_PATH: ${SERVER_SSL_KEYSTORE_PATH:-}
+      SERVER_SSL_KEYSTORE_PASSWORD: ${SERVER_SSL_KEYSTORE_PASSWORD:-}
+      SERVER_SSL_KEYSTORE_TYPE: ${SERVER_SSL_KEYSTORE_TYPE:-PKCS12}
+      SERVER_SSL_TRUSTSTORE_PATH: ${SERVER_SSL_TRUSTSTORE_PATH:-}
+      SERVER_SSL_TRUSTSTORE_PASSWORD: ${SERVER_SSL_TRUSTSTORE_PASSWORD:-}
+      SERVER_SSL_CLIENT_AUTH: ${SERVER_SSL_CLIENT_AUTH:-none}
+      GATEWAY_SSL_INSECURE_TRUST_MANAGER: ${GATEWAY_SSL_INSECURE_TRUST_MANAGER:-false}
+    volumes:
+      - ./certs:/app/certs:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+      auth-service:
+        condition: service_healthy
+      core-banking-connector:
+        condition: service_healthy
+      transaction-service:
+        condition: service_healthy
+      audit-service:
+        condition: service_healthy
+      fraud-detection-service:
+        condition: service_healthy
+      kyc-aml-service:
+        condition: service_healthy
+    networks:
+      - fyp-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1.00"
+          memory: 1024M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+
+  # ===========================================================================
+  # Frontend
+  # ===========================================================================
+
+  # UI changes on port 3001: from repo root run scripts/docker-rebuild-frontend.ps1 (or .sh), or:
+  #   docker compose rm -fs frontend && docker compose build --no-cache frontend && docker compose up -d --no-deps frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: fyp-frontend:latest
+    container_name: fyp-frontend
+    ports:
+      - "3001:3000"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O-", "http://127.0.0.1:3000/"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+    networks:
+      - fyp-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 512M
+        reservations:
+          cpus: "0.10"
+          memory: 128M

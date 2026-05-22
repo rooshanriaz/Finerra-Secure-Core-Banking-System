@@ -1,0 +1,115 @@
+server:
+  port: 8081
+  servlet:
+    context-path: /api
+
+spring:
+  application:
+    name: core-banking-connector
+  
+  # Database Configuration (H2 for development)
+  datasource:
+    url: jdbc:h2:mem:cbcdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+  
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+# Keycloak JWT (see KeycloakJwtDecoderConfig — avoids OIDC discovery to localhost from Docker)
+oauth2:
+  jwt:
+    jwk-set-uri: ${OAUTH2_JWK_SET_URI:http://localhost:8090/realms/finnera/protocol/openid-connect/certs}
+    issuer: ${OAUTH2_JWT_ISSUER:http://localhost:8090/realms/finnera}
+
+# Apache Fineract Configuration
+fineract:
+  base-url: ${FINERACT_BASE_URL:https://localhost:8443/fineract-provider/api}
+  username: ${FINERACT_USERNAME:mifos}
+  password: ${FINERACT_PASSWORD:password}
+  tenant-id: ${FINERACT_TENANT_ID:default}
+  connection-timeout: 5000
+  read-timeout: 30000
+  skip-ssl-verification: ${FINERACT_SKIP_SSL:true}
+
+# Resilience4j Circuit Breaker Configuration
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10000
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+    instances:
+      fineractAuth:
+        baseConfig: default
+      fineractClient:
+        baseConfig: default
+      fineractSavings:
+        baseConfig: default
+      fineractLoan:
+        baseConfig: default
+      fineractTransaction:
+        baseConfig: default
+      fineractAudit:
+        baseConfig: default
+  
+  retry:
+    configs:
+      default:
+        maxAttempts: 3
+        waitDuration: 1000
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2
+    instances:
+      fineractApi:
+        baseConfig: default
+
+# Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,circuitbreakers,circuitbreakerevents
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when_authorized
+      show-components: when_authorized
+  health:
+    circuitbreakers:
+      enabled: true
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.fyp.cbc: DEBUG
+    org.springframework.web.reactive.function.client: DEBUG
+    io.github.resilience4j: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# OpenAPI/Swagger Configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+    tagsSorter: alpha

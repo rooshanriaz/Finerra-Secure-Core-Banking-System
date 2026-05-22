@@ -1,0 +1,172 @@
+# =============================================================================
+# Auth Service - PRODUCTION Configuration
+# =============================================================================
+# Requires: MySQL, Redis
+# Run with: $env:SPRING_PROFILES_ACTIVE="prod"; mvn spring-boot:run
+# =============================================================================
+
+server:
+  port: 8082
+  ssl:
+    enabled: ${SERVER_SSL_ENABLED:false}
+    key-store: ${SERVER_SSL_KEYSTORE_PATH:}
+    key-store-password: ${SERVER_SSL_KEYSTORE_PASSWORD:}
+    key-store-type: ${SERVER_SSL_KEYSTORE_TYPE:PKCS12}
+    trust-store: ${SERVER_SSL_TRUSTSTORE_PATH:}
+    trust-store-password: ${SERVER_SSL_TRUSTSTORE_PASSWORD:}
+    client-auth: ${SERVER_SSL_CLIENT_AUTH:none}
+
+spring:
+  application:
+    name: auth-service
+  
+  # ==========================================================================
+  # MySQL Database Configuration
+  # ==========================================================================
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:auth_db}?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: ${MYSQL_USERNAME:fyp_user}
+    password: ${MYSQL_PASSWORD:fyp_password}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      pool-name: AuthServiceHikariPool
+      maximum-pool-size: 10
+      minimum-idle: 5
+      idle-timeout: 300000
+      max-lifetime: 1800000
+      connection-timeout: 30000
+  
+  # Disable H2 console in production
+  h2:
+    console:
+      enabled: false
+  
+  # ==========================================================================
+  # JPA Configuration for MySQL
+  # ==========================================================================
+  jpa:
+    hibernate:
+      ddl-auto: update  # Use 'validate' in true production with Flyway/Liquibase
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: false
+    open-in-view: false
+  
+  # ==========================================================================
+  # Redis Configuration (for token revocation)
+  # ==========================================================================
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 5000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 2
+          max-wait: -1ms
+  
+  # Remove Redis autoconfigure exclusion for production
+  autoconfigure:
+    exclude: []
+
+# =============================================================================
+# JWT Configuration - Use Strong Secret in Production!
+# =============================================================================
+
+jwt:
+  # IMPORTANT: Set JWT_SECRET environment variable with a strong 256+ bit key
+  secret: ${JWT_SECRET:ThisIsAVerySecretKeyThatShouldBeChangedInProductionEnvironment123!}
+  access-token-expiration: 3600000      # 1 hour
+  refresh-token-expiration: 604800000   # 7 days
+  issuer: auth-service
+
+# =============================================================================
+# Core Banking Connector Configuration
+# =============================================================================
+
+cbc:
+  url: ${CBC_URL:http://localhost:8081}
+  username: ${CBC_USERNAME:system}
+  password: ${CBC_PASSWORD:system123}
+  sync:
+    enabled: ${CBC_SYNC_ENABLED:true}
+    interval: 300000  # 5 minutes
+
+# =============================================================================
+# Light ABAC Configuration - ENABLED for Production
+# =============================================================================
+
+abac:
+  enabled: true
+  ip-whitelist:
+    enabled: ${ABAC_IP_ENABLED:true}
+    allowed-ips:
+      - 127.0.0.1
+      - 0:0:0:0:0:0:0:1
+      - 192.168.0.0/16
+      - 10.0.0.0/8
+      - 172.16.0.0/12
+  business-hours:
+    enabled: ${ABAC_HOURS_ENABLED:false}  # Enable if needed
+    timezone: Asia/Karachi
+    start-hour: 9
+    end-hour: 18
+    allowed-days: [1, 2, 3, 4, 5]
+
+# =============================================================================
+# Token Revocation Configuration (with Redis)
+# =============================================================================
+
+revocation:
+  use-redis: true
+  key-prefix: "revoked:token:"
+  channel: "token-revocation"
+  cleanup-interval: 3600000
+
+# =============================================================================
+# Actuator Configuration
+# =============================================================================
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when_authorized
+  health:
+    redis:
+      enabled: true
+    db:
+      enabled: true
+
+# =============================================================================
+# DID Verification Configuration
+# =============================================================================
+
+did:
+  kyc-service-url: http://kyc-aml-service:8083
+  verification:
+    enabled: true
+
+# =============================================================================
+# Logging Configuration - Less verbose for production
+# =============================================================================
+
+logging:
+  level:
+    root: INFO
+    com.fyp.auth: INFO
+    org.springframework.security: WARN
+    org.hibernate.SQL: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/auth-service.log

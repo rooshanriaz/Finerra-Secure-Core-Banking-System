@@ -1,0 +1,55 @@
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/kyc_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: ${DB_USERNAME:fyp_user}
+    password: ${DB_PASSWORD:fyp_password}
+    hikari:
+      pool-name: KycServiceHikariPool
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
+  
+  h2:
+    console:
+      enabled: false
+  
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+
+# Fabric in Docker: compose sets FABRIC_NETWORK_CONFIG / FABRIC_WALLET_PATH; fall back to legacy names.
+fabric:
+  enabled: ${FABRIC_ENABLED:true}
+  wallet-path: ${FABRIC_WALLET_PATH:${FABRIC_WALLET:/app/fabric-wallet}}
+  network-config: ${FABRIC_NETWORK_CONFIG:${FABRIC_CONFIG:/app/fabric-network/config/connection-bank-docker.yaml}}
+
+logging:
+  level:
+    root: INFO
+    com.fyp.kyc: INFO
+
+services:
+  audit-service:
+    url: ${AUDIT_SERVICE_URL:http://audit-service:8087/api}
+
+security:
+  oauth2:
+    client:
+      token-url: ${KYC_OAUTH2_TOKEN_URL:${OAUTH2_TOKEN_URL:http://keycloak:8080/realms/finnera/protocol/openid-connect/token}}
+      client-id: ${OAUTH2_CLIENT_ID:transaction-service}
+      client-secret: ${OAUTH2_CLIENT_SECRET:transaction-service-secret-change-me}
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+management:
+  endpoint:
+    health:
+      show-details: never

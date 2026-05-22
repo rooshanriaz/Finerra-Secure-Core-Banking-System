@@ -1,0 +1,188 @@
+# =============================================================================
+# Auth Service Configuration
+# =============================================================================
+
+server:
+  port: 8082
+  ssl:
+    enabled: false  # Enable for mTLS in production
+
+spring:
+  application:
+    name: auth-service
+  
+  # ==========================================================================
+  # Default: H2 In-Memory Database (for development)
+  # For MySQL: Use profile 'prod' or set environment variables
+  # ==========================================================================
+  datasource:
+    url: jdbc:h2:mem:auth_db;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  
+  # ==========================================================================
+  # JPA Configuration
+  # ==========================================================================
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: true
+    open-in-view: false
+  
+  # ==========================================================================
+  # Redis Configuration (optional - for token revocation in production)
+  # Disabled by default for development
+  # ==========================================================================
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+
+# =============================================================================
+# JWT Configuration
+# =============================================================================
+
+jwt:
+  # Secret key for signing tokens (minimum 256 bits / 32 characters)
+  secret: ${JWT_SECRET:ThisIsAVerySecretKeyThatShouldBeChangedInProductionEnvironment123!}
+  # Access token expiration (1 hour in milliseconds)
+  access-token-expiration: 3600000
+  # Refresh token expiration (7 days in milliseconds)
+  refresh-token-expiration: 604800000
+  # Issuer
+  issuer: auth-service
+
+oidc:
+  issuer-url: ${OIDC_ISSUER_URL:http://localhost:8082}
+
+# Keycloak access tokens (SPA login) — validated alongside legacy HS256 tokens in JwtAuthenticationFilter
+oauth2:
+  jwt:
+    jwk-set-uri: ${OAUTH2_JWK_SET_URI:http://localhost:8090/realms/finnera/protocol/openid-connect/certs}
+    issuer: ${OAUTH2_JWT_ISSUER:http://localhost:8090/realms/finnera}
+
+# =============================================================================
+# Keycloak Admin — used to provision users in Keycloak when they are created
+# in the auth-service so they can authenticate via the OIDC password grant.
+# Override KEYCLOAK_ADMIN_URL with the Docker-internal URL (http://keycloak:8080)
+# when running inside Docker Compose.
+# =============================================================================
+keycloak:
+  admin:
+    url: ${KEYCLOAK_ADMIN_URL:http://localhost:8090}
+    username: ${KEYCLOAK_ADMIN_USERNAME:admin}
+    password: ${KEYCLOAK_ADMIN_PASSWORD:admin}
+  realm: ${KEYCLOAK_REALM:finnera}
+  # When true, user create/update/password/roles require a successful Keycloak Admin API call
+  # so SPA OIDC login always matches the auth-service database.
+  provisioning:
+    enabled: ${KEYCLOAK_PROVISIONING_ENABLED:true}
+
+# =============================================================================
+# Core Banking Connector Configuration (for Fineract sync)
+# =============================================================================
+
+cbc:
+  url: ${CBC_URL:http://localhost:8081}
+  username: ${CBC_USERNAME:system}
+  password: ${CBC_PASSWORD:system123}
+  sync:
+    enabled: false  # Disabled by default for development
+    # Sync interval in milliseconds (5 minutes)
+    interval: 300000
+
+# =============================================================================
+# Light ABAC Configuration
+# =============================================================================
+
+abac:
+  enabled: true
+  # IP Whitelist (comma-separated, supports CIDR notation)
+  ip-whitelist:
+    enabled: false  # Disabled by default for development
+    # Default allowed IPs (localhost, private networks)
+    allowed-ips:
+      - 127.0.0.1
+      - 0:0:0:0:0:0:0:1
+      - 192.168.0.0/16
+      - 10.0.0.0/8
+      - 172.16.0.0/12
+  
+  # Business Hours Configuration
+  business-hours:
+    enabled: false  # Disable by default for development
+    timezone: Asia/Karachi
+    start-hour: 9
+    end-hour: 18
+    # Days when access is allowed (1=Monday, 7=Sunday)
+    allowed-days:
+      - 1  # Monday
+      - 2  # Tuesday
+      - 3  # Wednesday
+      - 4  # Thursday
+      - 5  # Friday
+
+# =============================================================================
+# Token Revocation Configuration
+# =============================================================================
+
+revocation:
+  # Use Redis for token revocation (false = database only)
+  use-redis: false
+  # Redis key prefix for revoked tokens
+  key-prefix: "revoked:token:"
+  # Pub/Sub channel for instant logout
+  channel: "token-revocation"
+  # Cleanup interval for expired tokens (1 hour)
+  cleanup-interval: 3600000
+
+# =============================================================================
+# Actuator Configuration
+# =============================================================================
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when_authorized
+  health:
+    redis:
+      enabled: false
+    db:
+      enabled: true
+
+# =============================================================================
+# DID Verification Configuration
+# =============================================================================
+
+did:
+  kyc-service-url: ${KYC_SERVICE_URL:http://localhost:8083}
+  verification:
+    enabled: ${DID_VERIFICATION_ENABLED:true}
+
+# =============================================================================
+# Logging Configuration
+# =============================================================================
+
+logging:
+  level:
+    root: INFO
+    com.fyp.auth: DEBUG
+    org.springframework.security: INFO
+    org.hibernate.SQL: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"

@@ -1,0 +1,131 @@
+server:
+  port: 8083
+  servlet:
+    context-path: /api
+
+spring:
+  application:
+    name: kyc-aml-service
+  
+  # Database Configuration (H2 for development)
+  datasource:
+    url: jdbc:h2:mem:kycdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+  
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+# Keycloak JWT (see KeycloakJwtDecoderConfig — avoids OIDC discovery to localhost from Docker)
+oauth2:
+  jwt:
+    jwk-set-uri: ${OAUTH2_JWK_SET_URI:http://localhost:8090/realms/finnera/protocol/openid-connect/certs}
+    issuer: ${OAUTH2_JWT_ISSUER:http://localhost:8090/realms/finnera}
+
+# JWT Configuration (shared with auth-service)
+jwt:
+  secret: ${JWT_SECRET:ThisIsAVerySecretKeyThatShouldBeChangedInProductionEnvironment123!}
+
+# AES Encryption for PII
+encryption:
+  aes:
+    secret-key: ${AES_SECRET_KEY:FYP-KYC-AES-256-SECRET-KEY-2026}
+    algorithm: AES/GCM/NoPadding
+
+# Service URLs
+services:
+  nadra-mock:
+    # Real NADRA is not publicly available for FYP; use nadra-mock-service locally or in Docker.
+    # Production: point to the licensed NADRA integration endpoint when credentials exist.
+    url: ${NADRA_MOCK_URL:${NADRA_SERVICE_URL:http://localhost:8084/api}}
+  core-banking-connector:
+    url: ${CBC_URL:http://localhost:8081/api}
+    username: ${CBC_USERNAME:system}
+    password: ${CBC_PASSWORD:system123}
+  auth-service:
+    url: ${AUTH_SERVICE_URL:http://localhost:8082}
+  audit-service:
+    url: ${AUDIT_SERVICE_URL:http://localhost:8087/api}
+
+security:
+  oauth2:
+    client:
+      token-url: ${OAUTH2_TOKEN_URL:http://localhost:8090/realms/finnera/protocol/openid-connect/token}
+      client-id: ${OAUTH2_CLIENT_ID:transaction-service}
+      client-secret: ${OAUTH2_CLIENT_SECRET:transaction-service-secret-change-me}
+
+# Fabric Network Configuration
+fabric:
+  enabled: ${FABRIC_ENABLED:false}
+  network-config: ${FABRIC_NETWORK_CONFIG:fabric-network/config/connection-bank.yaml}
+  wallet-path: ${FABRIC_WALLET_PATH:wallet}
+  channel-name: ${FABRIC_CHANNEL:banking-channel}
+  chaincode-name: ${FABRIC_CHAINCODE:did-contract}
+  msp-id: ${FABRIC_MSP_ID:BankMSP}
+  user-name: ${FABRIC_USER:admin}
+
+# AML Configuration
+aml:
+  screening:
+    enabled: true
+    # Similarity threshold for name matching (0.0 to 1.0)
+    name-match-threshold: 0.85
+
+# Resilience4j Circuit Breaker
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10000
+        permittedNumberOfCallsInHalfOpenState: 3
+    instances:
+      nadraService:
+        baseConfig: default
+      cbcService:
+        baseConfig: default
+      fabricService:
+        baseConfig: default
+
+# Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,circuitbreakers
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when_authorized
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.fyp.kyc: DEBUG
+    org.springframework.web.reactive.function.client: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# OpenAPI/Swagger Configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+    tagsSorter: alpha

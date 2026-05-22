@@ -1,0 +1,72 @@
+# =============================================================================
+# Auth Service - Development Profile
+# =============================================================================
+# Uses H2 in-memory database instead of MySQL for easy development
+
+spring:
+  # Exclude Redis auto-configuration in dev
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+
+  # H2 Database for Development
+  datasource:
+    url: jdbc:h2:mem:auth_db;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: true
+
+# Explicitly disable Redis repositories
+  data:
+    redis:
+      repositories:
+        enabled: false
+
+# =============================================================================
+# Development-specific settings
+# =============================================================================
+
+# Disable Redis for token revocation (use database-only in dev)
+revocation:
+  use-redis: false
+
+# Disable ABAC checks in development
+abac:
+  enabled: true
+  ip-whitelist:
+    enabled: false  # Allow all IPs in dev
+  business-hours:
+    enabled: false  # Allow anytime in dev
+
+# Fineract sync disabled in dev (use mock data)
+cbc:
+  sync:
+    enabled: false
+
+# More verbose logging in development
+logging:
+  level:
+    com.fyp.auth: DEBUG
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+
+management:
+  health:
+    redis:
+      enabled: false

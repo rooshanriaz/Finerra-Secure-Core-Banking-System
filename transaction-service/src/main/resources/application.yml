@@ -1,0 +1,116 @@
+server:
+  port: 8085
+  servlet:
+    context-path: /api
+
+spring:
+  application:
+    name: transaction-service
+  
+  # Database Configuration (H2 for development)
+  datasource:
+    url: jdbc:h2:mem:txndb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+  
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+# Keycloak JWT (see KeycloakJwtDecoderConfig — avoids OIDC discovery to localhost from Docker)
+oauth2:
+  jwt:
+    jwk-set-uri: ${OAUTH2_JWK_SET_URI:http://localhost:8090/realms/finnera/protocol/openid-connect/certs}
+    issuer: ${OAUTH2_JWT_ISSUER:http://localhost:8090/realms/finnera}
+
+# JWT Configuration (shared with auth-service)
+jwt:
+  secret: ${JWT_SECRET:ThisIsAVerySecretKeyThatShouldBeChangedInProductionEnvironment123!}
+
+# Service URLs
+services:
+  core-banking-connector:
+    url: ${CBC_URL:http://localhost:8081/api}
+  audit-service:
+    url: ${AUDIT_SERVICE_URL:http://localhost:8086/api}
+  fraud-detection-service:
+    url: ${FRAUD_SERVICE_URL:http://localhost:8087/api}
+
+security:
+  oauth2:
+    client:
+      token-url: ${OAUTH2_TOKEN_URL:http://localhost:8090/realms/finnera/protocol/openid-connect/token}
+      client-id: ${OAUTH2_CLIENT_ID:transaction-service}
+      client-secret: ${OAUTH2_CLIENT_SECRET:transaction-service-secret-change-me}
+
+# Fineract defaults
+fineract:
+  default-payment-type-id: ${FINERACT_PAYMENT_TYPE_ID:1}
+
+# Transaction Validation Limits
+transaction:
+  limits:
+    max-single-deposit: 1000000
+    max-single-withdrawal: 500000
+    max-daily-deposit: 5000000
+    max-daily-withdrawal: 2000000
+    max-daily-transactions: 50
+    max-single-loan-repayment: 2000000
+
+# Resilience4j Circuit Breaker
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10000
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+    instances:
+      cbcService:
+        baseConfig: default
+      auditService:
+        baseConfig: default
+      fraudService:
+        baseConfig: default
+
+# Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.fyp.txn: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# OpenAPI/Swagger Configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+    tagsSorter: alpha

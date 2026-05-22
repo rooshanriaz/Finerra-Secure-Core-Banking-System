@@ -1,0 +1,88 @@
+# OS/editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Git metadata from accidental nested repos
+**/.git/
+
+# Node
+**/node_modules/
+frontend/dist/
+
+# Java / Maven / Gradle
+**/target/
+**/build/
+**/.gradle/
+*.class
+
+# Logs and temp
+*.log
+tmp-*.log
+*.tmp
+
+# Python
+**/__pycache__/
+*.pyc
+
+# Runtime data
+**/uploads/
+**/data/
+temp-repo/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+!**/.env.example
+!**/.env.template
+frontend/.env.development
+frontend/.env.production
+frontend/.env.local
+
+# Service logs (may contain tokens or PII)
+**/logs/
+*.log
+tmp-*.log
+
+# Certificates and keys
+certs/*.pem
+certs/*.key
+certs/*.crt
+certs/*.p12
+certs/*.jks
+**/*.pem
+**/*.key
+**/*.p12
+**/*.jks
+
+# Fabric wallet artifacts
+fabric-wallet/
+**/fabric-wallet/
+
+# Hyperledger Fabric binaries (download via fabric-network/scripts/network.sh or install-fabric.sh)
+fabric-network/bin/*
+!fabric-network/bin/README.md
+fabric-network/builders/
+
+# Local-only project documentation and presentation assets
+Phase_*.md
+Phase_*.md.backup
+presentation-content/
+Design and Architecture Diagrams.pdf
+FYP - Scope Document - Sample.pdf
+FYP_Report.pdf
+Project_Requirement_Specifications.pdf
+Implementation_Guide.png
+New_Summary.md
+New_Testing_Guide.md
+Postman_Testing.md
+TESTING_GUIDE.md
+TESTING_GUIDE.md.backup
+implementation_plan.pdf
+summary.md
+conversation_context.md
+auth-flow.md
+System Architecture.jpg

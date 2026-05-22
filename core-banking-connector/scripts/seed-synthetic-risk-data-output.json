@@ -1,0 +1,11 @@
+﻿{
+    "generatedAt":  "2026-04-21T00:06:01.7808373+05:00",
+    "countRequested":  55,
+    "countSucceeded":  0,
+    "countFailed":  55,
+    "usedLoanProductId":  1,
+    "usedLoanProductName":  "Personal Loan",
+    "records":  [
+
+                ]
+}

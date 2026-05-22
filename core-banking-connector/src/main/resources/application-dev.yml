@@ -1,0 +1,25 @@
+# Development Profile Configuration
+
+server:
+  port: 8081
+
+spring:
+  h2:
+    console:
+      enabled: true
+
+# Fineract - Development settings
+fineract:
+  base-url: https://localhost:8443/fineract-provider/api
+  username: mifos
+  password: password
+  tenant-id: default
+  skip-ssl-verification: true
+
+# More verbose logging in development
+logging:
+  level:
+    root: INFO
+    com.fyp.cbc: DEBUG
+    org.springframework.web.reactive.function.client: DEBUG
+    org.springframework.security: DEBUG

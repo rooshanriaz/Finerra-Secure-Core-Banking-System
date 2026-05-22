@@ -1,0 +1,72 @@
+# =============================================================================
+# API Gateway - Production Profile
+# =============================================================================
+
+spring:
+  cloud:
+    gateway:
+      httpclient:
+        ssl:
+          use-insecure-trust-manager: ${GATEWAY_SSL_INSECURE_TRUST_MANAGER:false}
+          handshake-timeout: 10000ms
+          close-notify-flush-timeout: 3000ms
+          close-notify-read-timeout: 0ms
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${OAUTH2_ISSUER_URI:http://localhost:8090/realms/finnera}
+          jwk-set-uri: ${OAUTH2_JWK_SET_URI:http://localhost:8090/realms/finnera/protocol/openid-connect/certs}
+
+server:
+  ssl:
+    enabled: ${SERVER_SSL_ENABLED:false}
+    key-store: ${SERVER_SSL_KEYSTORE_PATH:}
+    key-store-password: ${SERVER_SSL_KEYSTORE_PASSWORD:}
+    key-store-type: ${SERVER_SSL_KEYSTORE_TYPE:PKCS12}
+    trust-store: ${SERVER_SSL_TRUSTSTORE_PATH:}
+    trust-store-password: ${SERVER_SSL_TRUSTSTORE_PASSWORD:}
+    client-auth: ${SERVER_SSL_CLIENT_AUTH:none}
+
+gateway:
+  security:
+    audience: ${OAUTH2_AUDIENCE:api-gateway}
+
+rate-limit:
+  authenticated-limit: 1000
+  anonymous-limit: 100
+  use-redis: true
+
+services:
+  core-banking-connector:
+    url: ${CBC_URL:http://core-banking-connector:8081}
+  auth-service:
+    url: ${AUTH_SERVICE_URL:http://auth-service:8082}
+  kyc-aml-service:
+    url: ${KYC_AML_SERVICE_URL:http://kyc-aml-service:8083}
+  transaction-service:
+    url: ${TRANSACTION_SERVICE_URL:http://transaction-service:8085}
+  audit-service:
+    url: ${AUDIT_SERVICE_URL:http://audit-service:8086}
+  fraud-detection-service:
+    url: ${FRAUD_SERVICE_URL:http://fraud-detection-service:8087}
+
+# Enable Redis health check in production (since use-redis: true)
+management:
+  endpoint:
+    health:
+      show-details: never
+  health:
+    redis:
+      enabled: true
+
+logging:
+  level:
+    root: WARN
+    com.fyp.gateway: INFO
+    org.springframework.cloud.gateway: WARN

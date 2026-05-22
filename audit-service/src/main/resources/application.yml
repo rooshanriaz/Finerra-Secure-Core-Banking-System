@@ -1,0 +1,91 @@
+server:
+  port: 8086
+  servlet:
+    context-path: /api
+
+spring:
+  application:
+    name: audit-service
+  
+  # Database Configuration (H2 for development)
+  datasource:
+    url: jdbc:h2:mem:auditdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+  
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+# Keycloak JWT (see KeycloakJwtDecoderConfig — avoids OIDC discovery to localhost from Docker)
+oauth2:
+  jwt:
+    jwk-set-uri: ${OAUTH2_JWK_SET_URI:http://localhost:8090/realms/finnera/protocol/openid-connect/certs}
+    issuer: ${OAUTH2_JWT_ISSUER:http://localhost:8090/realms/finnera}
+
+# JWT Configuration
+jwt:
+  secret: ${JWT_SECRET:ThisIsAVerySecretKeyThatShouldBeChangedInProductionEnvironment123!}
+
+# Fabric Configuration
+fabric:
+  enabled: ${FABRIC_ENABLED:false}
+  channel-name: ${FABRIC_CHANNEL:banking-channel}
+  chaincode-name: ${FABRIC_CHAINCODE:audit-contract}
+  msp-id: ${FABRIC_MSP:BankMSP}
+  wallet-path: ${FABRIC_WALLET:./fabric-wallet}
+  network-config: ${FABRIC_CONFIG:./fabric-network/connection-profile.yaml}
+
+# Resilience4j Circuit Breaker
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10000
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+    instances:
+      fabricService:
+        baseConfig: default
+
+# Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.fyp.audit: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# OpenAPI/Swagger Configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+    tagsSorter: alpha

@@ -1,0 +1,96 @@
+server:
+  port: 8087
+  servlet:
+    context-path: /api
+
+spring:
+  application:
+    name: fraud-detection-service
+  
+  datasource:
+    url: jdbc:h2:mem:frauddb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+  
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+oauth2:
+  jwt:
+    jwk-set-uri: ${OAUTH2_JWK_SET_URI:http://localhost:8090/realms/finnera/protocol/openid-connect/certs}
+    issuer: ${OAUTH2_JWT_ISSUER:http://localhost:8090/realms/finnera}
+
+jwt:
+  secret: ${JWT_SECRET:ThisIsAVerySecretKeyThatShouldBeChangedInProductionEnvironment123!}
+
+# ML Model Service
+ml-service:
+  url: ${ML_SERVICE_URL:http://127.0.0.1:5000}
+  timeout-ms: 5000
+  connect-timeout-ms: 3000
+
+# Fraud thresholds + basic-auth users for direct calls (transaction-service) / admin
+fraud:
+  security:
+    admin:
+      username: ${FRAUD_SERVICE_ADMIN_USERNAME:admin}
+      password: ${FRAUD_SERVICE_ADMIN_PASSWORD:admin123}
+    system:
+      username: ${FRAUD_SERVICE_SYSTEM_USERNAME:system}
+      password: ${FRAUD_SERVICE_SYSTEM_PASSWORD:system123}
+  thresholds:
+    block: 0.85
+    flag: 0.60
+    low: 0.30
+
+# Resilience4j Circuit Breaker
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10000
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+    instances:
+      mlService:
+        baseConfig: default
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    root: INFO
+    com.fyp.fraud: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+    tagsSorter: alpha

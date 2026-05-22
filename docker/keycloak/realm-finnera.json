@@ -1,0 +1,186 @@
+{
+  "realm": "finnera",
+  "enabled": true,
+  "registrationAllowed": false,
+  "resetPasswordAllowed": true,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "roles": {
+    "realm": [
+      { "name": "ADMIN" },
+      { "name": "SYSTEM" },
+      { "name": "COMPLIANCE_OFFICER" },
+      { "name": "MANAGER" },
+      { "name": "LOAN_OFFICER" },
+      { "name": "USER" },
+      { "name": "SERVICE_AUDIT" },
+      { "name": "SERVICE_FRAUD" },
+      { "name": "SERVICE_TRANSACTION" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "finnera-web",
+      "name": "Finnera Web SPA",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [
+        "http://localhost:3000/*",
+        "http://localhost:3001/*",
+        "http://localhost:5173/*"
+      ],
+      "webOrigins": [
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:5173"
+      ],
+      "defaultClientScopes": [
+        "profile",
+        "email",
+        "roles"
+      ]
+    },
+    {
+      "clientId": "api-gateway",
+      "name": "API Gateway Resource",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "gateway-secret-change-me",
+      "protocol": "openid-connect",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "defaultClientScopes": [
+        "roles"
+      ]
+    },
+    {
+      "clientId": "transaction-service",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "transaction-service-secret-change-me",
+      "protocol": "openid-connect",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true
+    },
+    {
+      "clientId": "audit-service",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "audit-service-secret-change-me",
+      "protocol": "openid-connect",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true
+    },
+    {
+      "clientId": "fraud-detection-service",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "fraud-service-secret-change-me",
+      "protocol": "openid-connect",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true
+    }
+  ],
+  "users": [
+    {
+      "username": "admin",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "System",
+      "lastName": "Admin",
+      "email": "admin@finnera.local",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Admin@2026!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "ADMIN",
+        "SYSTEM"
+      ]
+    },
+    {
+      "username": "branch.manager1",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Branch",
+      "lastName": "Manager",
+      "email": "branch.manager1@finnera.local",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Branch@2026!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "MANAGER"
+      ]
+    },
+    {
+      "username": "loan.officer1",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Loan",
+      "lastName": "Officer",
+      "email": "loan.officer1@finnera.local",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Loan@2026!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "LOAN_OFFICER"
+      ]
+    },
+    {
+      "username": "compliance.officer1",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Compliance",
+      "lastName": "Officer",
+      "email": "compliance.officer1@finnera.local",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Compliance@2026!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "COMPLIANCE_OFFICER"
+      ]
+    },
+    {
+      "username": "bank.user1",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Bank",
+      "lastName": "User",
+      "email": "bank.user1@finnera.local",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "User@2026!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "USER"
+      ]
+    }
+  ]
+}

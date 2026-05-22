@@ -1,0 +1,29 @@
+# =============================================================================
+# API Gateway - Development Profile
+# =============================================================================
+
+spring:
+  profiles:
+    active: dev
+
+# Development-specific settings
+jwt:
+  # Use a simple secret for development
+  secret: devSecretKey123456789012345678901234567890
+
+rate-limit:
+  # More lenient rate limits for development
+  authenticated-limit: 1000
+  anonymous-limit: 100
+  # Disable Redis in dev (use in-memory)
+  use-redis: false
+
+services:
+  core-banking-connector:
+    url: http://localhost:8081
+
+logging:
+  level:
+    com.fyp.gateway: DEBUG
+    org.springframework.cloud.gateway: DEBUG
+    reactor.netty.http.client: DEBUG

@@ -1,0 +1,123 @@
+# =============================================================================
+# API Gateway Configuration
+# =============================================================================
+
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${OAUTH2_ISSUER_URI:http://localhost:8090/realms/finnera}
+          jwk-set-uri: ${OAUTH2_JWK_SET_URI:http://localhost:8090/realms/finnera/protocol/openid-connect/certs}
+  
+  # Cloud Gateway Configuration
+  cloud:
+    gateway:
+      # Global timeout settings
+      httpclient:
+        connect-timeout: 5000
+        response-timeout: 30s
+      
+      # Default filters applied to all routes
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_UNIQUE
+      
+      # Enable gateway metrics
+      metrics:
+        enabled: true
+
+  # Redis Configuration (for distributed rate limiting)
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2000ms
+      # Disable Redis in development (use in-memory rate limiting)
+      # Uncomment below when Redis is available
+      # password: ${REDIS_PASSWORD:}
+
+gateway:
+  security:
+    audience: ${OAUTH2_AUDIENCE:api-gateway}
+    public-paths:
+      - /api/v1/authentication/**
+      - /api/v1/auth/login
+      - /api/v1/auth/refresh
+      - /api/v1/auth/validate
+      - /api/v1/auth/mfa/verify
+      - /actuator/**
+      - /health/**
+
+# =============================================================================
+# Rate Limiting Configuration
+# =============================================================================
+
+rate-limit:
+  enabled: true
+  # Requests per minute for authenticated users
+  authenticated-limit: 1000
+  # Requests per minute for anonymous users
+  anonymous-limit: 100
+  # Time window in seconds
+  window-seconds: 60
+  # Burst capacity multiplier
+  burst-multiplier: 1.5
+  # Use Redis for distributed rate limiting (set to true when Redis is available)
+  use-redis: false
+
+# =============================================================================
+# Backend Services URLs
+# =============================================================================
+
+services:
+  core-banking-connector:
+    url: ${CBC_URL:http://localhost:8081}
+  auth-service:
+    url: ${AUTH_SERVICE_URL:http://localhost:8082}
+  kyc-aml-service:
+    url: ${KYC_AML_SERVICE_URL:http://localhost:8083}
+  transaction-service:
+    url: ${TRANSACTION_SERVICE_URL:http://localhost:8085}
+  audit-service:
+    url: ${AUDIT_SERVICE_URL:http://localhost:8086}
+  fraud-detection-service:
+    url: ${FRAUD_SERVICE_URL:http://localhost:8087}
+
+# =============================================================================
+# Actuator Configuration
+# =============================================================================
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,gateway
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when_authorized
+    gateway:
+      enabled: true
+  health:
+    # Disable Redis health check when not using Redis for rate limiting
+    # Set to true in application-prod.yml when Redis is deployed
+    redis:
+      enabled: false
+
+# =============================================================================
+# Logging Configuration
+# =============================================================================
+
+logging:
+  level:
+    root: INFO
+    com.fyp.gateway: DEBUG
+    org.springframework.cloud.gateway: INFO
+    reactor.netty: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"

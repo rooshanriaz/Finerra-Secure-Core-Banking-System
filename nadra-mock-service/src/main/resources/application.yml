@@ -1,0 +1,55 @@
+server:
+  port: 8084
+  servlet:
+    context-path: /api
+
+spring:
+  application:
+    name: nadra-mock-service
+
+# NADRA Mock Configuration
+nadra:
+  mock:
+    # Simulated processing delay range in milliseconds
+    min-delay-ms: 500
+    max-delay-ms: 2000
+    # CNIC ranges that always pass verification
+    # CNICs starting with these prefixes will always pass
+    pass-prefixes:
+      - "35201"
+      - "35202"
+      - "61101"
+    # CNICs starting with these prefixes will always fail
+    fail-prefixes:
+      - "99999"
+      - "00000"
+    # Biometric match threshold (0.0 to 1.0)
+    biometric-threshold: 0.75
+
+# Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.fyp.nadra: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# OpenAPI/Swagger Configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+    tagsSorter: alpha
