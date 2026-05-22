@@ -1,82 +1,281 @@
-# Fintech API for Core Banking Security
+# Finnera – Secure Core Banking & Fintech API Platform
 
-Production-oriented banking security platform inspired by ecosystem patterns seen in initiatives like Open Bank Project and Apache Fineract: composable microservices, auditable transaction workflows, and standards-aligned identity and authorization.
+Production-oriented fintech and banking security platform inspired by modern open-banking ecosystems such as Open Bank Project and Apache Fineract.
 
-## Overview
+Finnera is designed as a modular, security-first microservices architecture that demonstrates how modern financial institutions can securely manage digital banking operations, identity, fraud detection, compliance workflows, and audit integrity.
 
-This repository delivers a secure core-banking extension stack with:
+The project combines **Core Banking Integration**, **Zero-Trust Security Principles**, **Blockchain-backed Auditing**, and **AI-assisted Fraud Detection** into a unified banking platform suitable for enterprise-grade financial systems and academic research.
 
-- API-driven banking operations through a Core Banking Connector integrated with Apache Fineract.
-- Centralized identity, OAuth2/OIDC token validation, and role-based controls.
-- KYC/AML orchestration with encrypted PII and DID issuance.
-- Transaction processing with fraud scoring and maker-checker controls.
-- Immutable audit anchoring to Hyperledger Fabric (with CouchDB world state).
-- Operational dashboards for Super Admin, Compliance, Manager, and Loan Officer personas.
+![logo](Finnera_Logo.png)
 
-## Architecture
+---
 
-Primary modules:
+# 📌 Project Objectives
 
-- `api-gateway` - edge routing, policy enforcement, request mediation.
-- `auth-service` - identity lifecycle, MFA, and authorization support.
-- `core-banking-connector` - integration facade over Apache Fineract APIs.
-- `transaction-service` - transaction orchestration, validations, approvals.
-- `fraud-detection-service` - anomaly scoring, alerting, threshold management.
-- `audit-service` - event integrity, report export, blockchain anchoring.
-- `kyc-aml-service` - onboarding, KYC status, AML checks, DID workflows.
-- `frontend` - React operational console and role-aware dashboards.
-- `fabric-network` - Hyperledger Fabric network and chaincode assets.
-- `ml-fraud-model` - model-serving component for fraud-risk predictions.
+The primary goal of Finnera is to design and implement a secure, scalable, and auditable banking platform capable of:
 
-## Technology Stack
+- Providing API-driven banking services through secure microservices.
+- Demonstrating modern fintech security architecture patterns.
+- Implementing role-based and policy-driven access control.
+- Supporting KYC/AML compliance workflows.
+- Detecting suspicious financial activities using ML-based fraud scoring.
+- Maintaining immutable audit trails using blockchain technology.
+- Enabling secure interoperability with core banking systems.
 
-- Java 17 / Spring Boot microservices
-- React + Vite frontend
-- MySQL + Redis
-- Keycloak (OIDC / OAuth2)
-- Apache Fineract integration
-- Hyperledger Fabric + CouchDB
-- Docker Compose for local orchestration
+---
 
-## Getting Started
+# 🏦 Key Features
 
-### Prerequisites
+## 🔐 Identity & Access Management
+- OAuth2 / OpenID Connect authentication using Keycloak.
+- Multi-Factor Authentication (MFA).
+- Role-Based Access Control (RBAC).
+- Token validation and centralized authorization policies.
+- Secure session and credential lifecycle management.
 
-- Docker Desktop with Docker Compose
+## 💳 Core Banking Integration
+- Secure integration with Apache Fineract.
+- API-driven banking operations:
+  - Customer onboarding
+  - Account management
+  - Deposits & withdrawals
+  - Fund transfers
+  - Loan operations
+- Standardized banking request orchestration.
+
+## 🛡️ Fraud Detection & Risk Scoring
+- Real-time fraud risk analysis.
+- Threshold-based anomaly detection.
+- Machine learning fraud scoring service.
+- Transaction flagging and alert management.
+- Investigation workflow support for compliance teams.
+
+## 📑 KYC / AML Compliance
+- Customer onboarding workflows.
+- KYC verification pipelines.
+- AML screening orchestration.
+- Encrypted Personally Identifiable Information (PII).
+- Decentralized Identifier (DID) issuance support.
+
+## ⛓️ Immutable Audit & Blockchain Integrity
+- Tamper-resistant audit logs.
+- Blockchain anchoring through Hyperledger Fabric.
+- CouchDB world-state persistence.
+- Transaction integrity verification.
+- Compliance-ready exportable audit reports.
+
+## 📊 Operational Dashboards
+Role-aware dashboards for:
+- Super Admin
+- Compliance Officer
+- Bank Manager
+- Loan Officer
+
+Includes:
+- Fraud monitoring panels
+- Customer management
+- Transaction analytics
+- Compliance reports
+- Audit verification tools
+
+---
+
+# 🏗️ System Architecture
+
+Finnera follows a distributed microservices architecture with independently deployable services.
+
+## Core Modules
+
+| Module | Description |
+|---|---|
+| `api-gateway` | Centralized routing, rate limiting, request mediation, and API policy enforcement |
+| `auth-service` | Identity lifecycle, MFA handling, JWT validation, RBAC |
+| `core-banking-connector` | Integration layer over Apache Fineract APIs |
+| `transaction-service` | Secure transaction orchestration and maker-checker workflows |
+| `fraud-detection-service` | Fraud scoring, anomaly detection, and alerting |
+| `audit-service` | Immutable event tracking and blockchain anchoring |
+| `kyc-aml-service` | KYC onboarding, AML workflows, DID management |
+| `frontend` | React-based operational console and dashboards |
+| `fabric-network` | Hyperledger Fabric network and smart contract assets |
+| `ml-fraud-model` | AI/ML inference service for fraud prediction |
+
+---
+
+# ⚙️ Technology Stack
+
+## Backend
+- Java 17
+- Spring Boot
+- Spring Security
+- Maven
+
+## Frontend
+- React
+- Vite
+- TailwindCSS
+
+## Databases & Storage
+- MySQL
+- Redis
+- CouchDB
+
+## Identity & Security
+- Keycloak
+- OAuth2
+- OpenID Connect (OIDC)
+- JWT Authentication
+
+## Blockchain & Audit
+- Hyperledger Fabric
+- Fabric Chaincode
+
+## Infrastructure
+- Docker
+- Docker Compose
+
+## Machine Learning
+- Python-based fraud prediction service
+- ML inference APIs
+
+---
+
+# 🔒 Security Architecture
+
+Finnera adopts a layered security architecture aligned with fintech and banking security practices.
+
+## Security Controls
+- Zero-trust service communication
+- JWT-based authentication
+- OAuth2 token introspection
+- RBAC authorization
+- API Gateway policy enforcement
+- Secure secret handling through environment variables
+- Encrypted sensitive customer data
+- Immutable blockchain-backed audit records
+- Fraud anomaly monitoring
+- Maker-checker transaction approval system
+
+---
+
+# 🚀 Getting Started
+
+## Prerequisites
+
+Ensure the following tools are installed:
+
+- Docker Desktop
+- Docker Compose
 - Java 17+
 - Maven 3.9+
-- Node.js 18+ (for standalone frontend workflows)
-- Hyperledger Fabric binaries (optional for local Fabric scripts): see `fabric-network/bin/README.md`
+- Node.js 18+
 
-### Local Deployment
+---
 
-1. Create local environment file:
-   - Copy `.env.example` to `.env`
-   - Replace all `CHANGE_ME_*` placeholders
-2. Start the platform:
-   - `docker compose up -d --build`
-3. Access endpoints:
-   - Frontend: `http://localhost:3001`
-   - API Gateway: `http://localhost:8080`
-   - Keycloak: `http://localhost:8090`
+# 📡 API Capabilities
 
-## Security and Configuration
+## Banking Operations
+- Customer onboarding
+- Account creation
+- Deposits & withdrawals
+- Inter-account transfers
+- Loan management
 
-- Commit only templates; keep runtime secrets in local `.env`.
-- `.gitignore` excludes environment secrets, keys, certificates, and local-only documentation assets.
-- mTLS, TLS, and Fabric configuration values are centrally documented in `.env.example`.
+## Compliance Operations
+- KYC verification
+- AML screening
+- DID issuance
+- Risk assessment
 
-## API and Operations
+## Security Operations
+- MFA authentication
+- Fraud alerting
+- Audit verification
+- Blockchain integrity validation
 
-- Application-level API catalog is available in the frontend at `/api-docs`.
-- Core operational domains:
-  - Customer onboarding and KYC/AML
-  - Deposits, withdrawals, transfers, and loan actions
-  - Fraud alerts, investigation, and threshold administration
-  - Audit exports and blockchain integrity verification
+---
 
-## Repository Conventions
+# 📂 Repository Structure
 
-- Use feature branches and pull requests for all production changes.
-- Configuration templates are versioned; environment-specific secrets are not.
-- Domain services are independently buildable and deployable.
+```text
+finnera/
+│
+├── api-gateway/
+├── auth-service/
+├── core-banking-connector/
+├── transaction-service/
+├── fraud-detection-service/
+├── audit-service/
+├── kyc-aml-service/
+├── frontend/
+├── fabric-network/
+├── ml-fraud-model/
+├── docker-compose.yml
+└── README.md
+```
+
+---
+
+# 🧪 Testing Strategy
+
+The project includes:
+- Unit Testing
+- Integration Testing
+- API Testing
+- Security Validation Testing
+- Fraud Simulation Scenarios
+- Blockchain Integrity Verification
+
+---
+
+# 📈 Future Enhancements
+
+Potential future improvements include:
+- AI-powered behavioral fraud analytics
+- Open Banking API standard support
+- Real-time transaction streaming
+- Kubernetes deployment support
+- SIEM integration
+- Multi-bank federation support
+- Mobile banking client integration
+- Advanced risk intelligence dashboards
+
+---
+
+# 🎓 Academic Significance
+
+This Final Year Project demonstrates practical implementation of:
+- Secure distributed systems
+- Fintech architecture
+- Blockchain-integrated auditing
+- Identity & access management
+- Secure API design
+- AI-assisted fraud detection
+- Compliance-aware banking workflows
+
+The project bridges academic concepts with real-world enterprise fintech architecture patterns.
+
+---
+
+# 🤝 Contributors
+
+[Rooshan Riaz](https://github.com/rooshanriaz)
+[Muhammad Shameer Awais](https://github.com/ShameerAwais)
+[Muhammad Yasir Khan](https://github.com/yasirkhan26)
+
+---
+
+# 📄 License
+
+This project is developed for academic and educational purposes as a Final Year Project (FYP).
+
+---
+
+# ⭐ Acknowledgements
+
+Special thanks to:
+- Apache Software Foundation
+- Apache Fineract
+- Hyperledger Fabric
+- Keycloak
+- Open-source fintech and security communities for architectural inspiration.
+
