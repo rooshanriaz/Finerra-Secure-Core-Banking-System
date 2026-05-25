@@ -259,7 +259,7 @@ Default realm users (imported from `docker/keycloak/realm-finnera.json`):
 
 API documentation is available in the UI at `/api-docs`.
 
-### 6. Optional — Hyperledger Fabric network
+### 6. Hyperledger Fabric network
 
 The main stack works without Fabric (KYC/Audit use mock DIDs). For **on-chain audit and DID anchoring**:
 
@@ -303,7 +303,7 @@ cd fabric-network
 ./scripts/network.sh status
 ```
 
-### 7. Optional — strict TLS / mTLS mode
+### 7. Strict TLS / mTLS mode
 
 Generate PKCS12 keystores under `certs/` (OpenSSL required). Example on Windows with Git for Windows:
 
@@ -318,7 +318,7 @@ Copy generated keystores to the repo-root `certs/` directory as documented in `P
 docker compose -f docker-compose.yml -f docker-compose.secure.yml up -d --build
 ```
 
-### 8. Optional — run the frontend locally (without Docker)
+### 8. Run the frontend locally (without Docker)
 
 ```bash
 cd frontend
@@ -329,7 +329,7 @@ npm run dev
 
 Vite dev server: http://localhost:5173 (proxies API and Keycloak per `vite.config.js`).
 
-### 9. Optional — rebuild only the frontend container
+### 9. Rebuild only the frontend container
 
 After UI changes:
 
