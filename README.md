@@ -1,4 +1,4 @@
-# Finnera – Secure Core Banking & Fintech API Platform
+# Finnera – Secure Core Banking & Fintech API
 
 Production-oriented fintech and banking security platform inspired by modern open-banking ecosystems such as Open Bank Project and Apache Fineract.
 
