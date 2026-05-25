@@ -127,9 +127,9 @@ Finnera adopts a layered security architecture aligned with fintech and banking 
 
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) with Docker Compose v2
 - 8 GB+ RAM free for Docker (first boot builds images and runs MySQL, Keycloak, Fineract, Fabric peers, and ML model)
-- **Optional (local development outside Docker):** Java 17+, Maven 3.9+, Node.js 18+
-- **Optional (Hyperledger Fabric scripts on the host):** Git Bash or WSL, Java 17+, Fabric CLI binaries — see `fabric-network/bin/README.md`
-- **Optional (strict TLS/mTLS):** OpenSSL — see `auth-service/certs/README.md`
+- Local development outside Docker): Java 17+, Maven 3.9+, Node.js 18+
+- Hyperledger Fabric scripts on the host: Git Bash or WSL, Java 17+, Fabric CLI binaries — see `fabric-network/bin/README.md`
+- strict TLS/mTLS: OpenSSL — see `auth-service/certs/README.md`
 
 ### 1. Clone the repository
 
